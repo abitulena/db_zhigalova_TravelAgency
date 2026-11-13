@@ -1,23 +1,19 @@
--- 1. Триггерная функция: проверка правила "Не больше 10 мест на тур"
-CREATE FUNCTION check_seats_limit() RETURNS trigger 
+-- 1. Триггер: Отзыв только после завершённого тура
+CREATE FUNCTION check_review_date() RETURNS trigger 
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_total_booked integer;
+    v_ends_at timestamptz;
 BEGIN
-    SELECT coalesce(sum(seats), 0) INTO v_total_booked 
-    FROM bookings 
-    WHERE tour_id = NEW.tour_id AND id != coalesce(NEW.id, -1);
-
-    IF v_total_booked + NEW.seats > 10 THEN
-        RAISE EXCEPTION 'Превышен лимит мест на тур. Уже забронировано: %', v_total_booked;
+    SELECT ends_at INTO v_ends_at FROM tours WHERE id = NEW.tour_id;
+    IF v_ends_at > now() THEN
+        RAISE EXCEPTION 'Нельзя оставить отзыв. Тур закончится только %', v_ends_at::date;
     END IF;
-    
     RETURN NEW;
 END $$;
 
-CREATE TRIGGER trg_check_seats_limit 
-BEFORE INSERT OR UPDATE ON bookings
-FOR EACH ROW EXECUTE FUNCTION check_seats_limit();
+CREATE TRIGGER trg_check_review_date 
+BEFORE INSERT OR UPDATE ON reviews
+FOR EACH ROW EXECUTE FUNCTION check_review_date();
 
 -- 2. Служебный триггер: автоматически обновляет updated_at
 CREATE FUNCTION set_updated_at() RETURNS trigger 
@@ -31,6 +27,7 @@ CREATE TRIGGER trg_tours_updated_at
 BEFORE UPDATE ON tours
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+-- 3. Журнал изменений
 CREATE TABLE tours_audit (
     id serial PRIMARY KEY,
     operation text NOT NULL,
@@ -60,7 +57,6 @@ CREATE TRIGGER trg_tours_audit
 AFTER INSERT OR UPDATE OR DELETE ON tours
 FOR EACH ROW EXECUTE FUNCTION log_tour_changes();
 
--- Функция "Состояние на дату" (возвращает jsonb)
 CREATE FUNCTION tour_state_at(p_tour_id integer, p_time timestamptz)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -68,7 +64,6 @@ AS $$
 DECLARE
     v_state jsonb;
 BEGIN
-    -- Берем последнее новое состояние до указанного времени (INSERT или UPDATE)
     SELECT new_data INTO v_state
     FROM tours_audit
     WHERE (new_data->>'id')::int = p_tour_id 
@@ -77,7 +72,6 @@ BEGIN
     ORDER BY changed_at DESC
     LIMIT 1;
 
-    -- Если записи не было, значит тур был удален до этого времени
     IF v_state IS NULL THEN
         RETURN '{"status": "not_exists"}'::jsonb;
     END IF;

@@ -1,3 +1,13 @@
+-- Добавляем таблицу отзывов
+CREATE TABLE reviews (
+    id serial PRIMARY KEY,
+    client_id integer NOT NULL REFERENCES clients (id) ON DELETE CASCADE,
+    tour_id integer NOT NULL REFERENCES tours (id) ON DELETE CASCADE,
+    rating integer NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment text,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- Добавляем колонку updated_at для служебного триггера
 ALTER TABLE tours ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
 
