@@ -1,5 +1,5 @@
--- 1. Таблицы на месте: 7 таблиц
--- expect: rows 7
+-- 1. Таблицы на месте: 8 таблиц (добавилась reviews в лабе 3)
+-- expect: rows 8
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public'
 ORDER BY 1;
