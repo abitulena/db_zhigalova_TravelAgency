@@ -42,7 +42,9 @@ erDiagram
     COUNTRIES ||--o{ HOTELS         : "has"
     HOTELS    ||--o{ TOURS          : "offers"
     CLIENTS   ||--o{ BOOKINGS       : "makes"
+    CLIENTS   ||--o{ REVIEWS        : "writes"
     TOURS     ||--o{ BOOKINGS       : "booked in"
+    TOURS     ||--o{ REVIEWS        : "has"
     TOURS     ||--o{ TOUR_TAG_LINKS : "tagged"
     TOUR_TAGS ||--o{ TOUR_TAG_LINKS : "used in"
 
@@ -63,6 +65,7 @@ erDiagram
         timestamptz starts_at
         timestamptz ends_at
         numeric price
+        timestamptz updated_at
     }
     clients {
         int id PK
@@ -74,6 +77,14 @@ erDiagram
         int client_id FK
         int tour_id FK
         int seats
+        timestamptz created_at
+    }
+    reviews {
+        int id PK
+        int client_id FK
+        int tour_id FK
+        int rating
+        text comment
         timestamptz created_at
     }
     tour_tags {
