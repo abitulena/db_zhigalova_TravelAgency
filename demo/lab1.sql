@@ -1,5 +1,5 @@
--- 1. Таблицы на месте: 7 таблиц
--- expect: rows 7
+-- 1. Таблицы на месте: 11 таблиц (включая reviews, tours_audit, mv_revenue_monthly)
+-- expect: rows 11
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public'
 ORDER BY 1;
